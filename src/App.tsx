@@ -31,6 +31,8 @@ import {
   Wifi,
 } from 'lucide-react'
 import './App.css'
+import { MobilityHeroScene } from './components/MobilityHeroScene'
+import { TransportServiceHub } from './components/TransportServiceHub'
 import {
   AppointmentManagerView,
   type AppointmentDetails,
@@ -87,6 +89,7 @@ const appointmentDates = [
 ]
 
 const appointmentSlots = ['09:30 AM', '11:00 AM', '02:30 PM']
+const showLegacyServicePanel = false
 
 function App() {
   const [view, setView] = useState<View>('home')
@@ -400,7 +403,12 @@ function App() {
             </span>
             <span>
               <strong>Raahi</strong>
-              <small>{t('Road services', 'सड़क सेवाएँ')}</small>
+              <small>
+                {t(
+                  'Road Transport Citizen Services',
+                  'सड़क परिवहन नागरिक सेवा',
+                )}
+              </small>
             </span>
           </div>
           <div className="language-control dark-control" aria-label="Choose language">
@@ -757,7 +765,16 @@ function App() {
             </div>
           </div>
 
-          <div className="service-panel" aria-label="Most used road services">
+          <div className="hero-showcase">
+            <MobilityHeroScene
+              onOpenRoadReady={() => navigate('road-ready')}
+            />
+          {showLegacyServicePanel && (
+          <div
+            className="service-panel legacy-service-panel"
+            aria-label="Most used road services"
+            hidden
+          >
             <div className="service-panel-header">
               <div>
                 <p className="overline">{t('Common services', 'सामान्य सेवाएँ')}</p>
@@ -921,8 +938,25 @@ function App() {
               </p>
             </div>
           </div>
+          )}
+          </div>
         </div>
       </section>
+
+      <TransportServiceHub
+        t={t}
+        onRoadReady={() => navigate('road-ready')}
+        onNewLicence={() => navigate('new-licence')}
+        onRenew={startFresh}
+        onTrack={() => navigate('track')}
+        onAppointment={() => navigate('appointment')}
+        onChallan={() => navigate('challan')}
+        onRto={() => {
+          setRtoReturnView('renew')
+          navigate('rto')
+        }}
+        onDocuments={() => navigate('documents')}
+      />
 
       {application && (
         <section className="active-application-section">
@@ -1793,7 +1827,12 @@ function App() {
             </span>
             <span>
               <strong>Raahi</strong>
-              <small>{t('Road services', 'सड़क सेवाएँ')}</small>
+              <small>
+                {t(
+                  'Road Transport Citizen Services',
+                  'सड़क परिवहन नागरिक सेवा',
+                )}
+              </small>
             </span>
           </button>
           <nav aria-label="Primary navigation">
@@ -1853,6 +1892,17 @@ function App() {
           </div>
         </div>
       </header>
+      <div className="department-ribbon">
+        <div className="container">
+          <span>{t('सड़क परिवहन नागरिक सेवा', 'Road Transport Citizen Services')}</span>
+          <span>
+            {t(
+              'Licence · Vehicle · eChallan · RTO · Permit',
+              'लाइसेंस · वाहन · ई-चालान · RTO · परमिट',
+            )}
+          </span>
+        </div>
+      </div>
 
       {view === 'home' && renderHome()}
       {view === 'renew' && renderRenewal()}
