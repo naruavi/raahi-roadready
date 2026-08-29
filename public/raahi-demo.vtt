@@ -15,23 +15,23 @@ It places renewal, address update and challan clearance in the right order, redu
 00:00:40.000 --> 00:00:50.000
 Before travel, preflight checks fictional documents and finds a name mismatch that could cause rejection.
 
-00:00:50.000 --> 00:00:59.000
+00:00:50.000 --> 00:01:00.000
 Resolve it immediately and receive a QR One-Visit Pass without exposing document numbers.
 
-00:00:59.000 --> 00:01:09.000
+00:01:00.000 --> 00:01:10.000
 Raahi was built with React, TypeScript, Codex and a test-first workflow.
 
-00:01:09.000 --> 00:01:19.000
+00:01:10.000 --> 00:01:20.000
 The design addresses unclear service boundaries, failed scrutiny, repeated entry, payment uncertainty and vague status.
 
-00:01:19.000 --> 00:01:29.000
+00:01:20.000 --> 00:01:30.000
 RoadReady combines once-only data, verified digital credentials and document preflight.
 
-00:01:29.000 --> 00:01:39.000
+00:01:30.000 --> 00:01:40.000
 Working journeys include new licences, renewals, eChallan, RTO comparison, appointments, maps and tracking.
 
-00:01:39.000 --> 00:01:49.000
+00:01:40.000 --> 00:01:50.000
 All identities, documents, fees, payments, government responses and integrations are fictional.
 
-00:01:49.000 --> 00:01:55.000
+00:01:50.000 --> 00:01:58.000
 Raahi changes the success metric from forms submitted to citizen work completed.
