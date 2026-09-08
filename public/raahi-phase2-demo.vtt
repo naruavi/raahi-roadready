@@ -1,0 +1,28 @@
+WEBVTT
+
+00:00.000 --> 00:08.000
+A citizen should not lose a day because two documents spell the same name differently.
+
+00:08.000 --> 00:22.000
+But a licence renewal can quickly become three disconnected tasks: renew the licence, update an address, and clear a challan.
+
+00:22.000 --> 00:36.000
+The citizen repeats the same details, guesses the right order, reaches the RTO, and may discover one mismatch only after standing in line.
+
+00:36.000 --> 00:50.000
+Raahi starts with the outcome, not the department. The citizen describes what needs to get done in everyday language.
+
+00:50.000 --> 01:04.000
+RoadReady translates that sentence into one ordered journey, bundles the services, removes repeated fields, and plans one coordinated visit.
+
+01:04.000 --> 01:22.000
+For Phase 2, we built VisitTwin. It rehearses each counter, shows where the journey stops, and makes the cost visible: one workday, a 28-kilometre return trip, and eleven days to the next slot.
+
+01:22.000 --> 01:37.000
+Raahi explains the mismatch, asks for consent, applies the correction once across the linked application, and replays the route. All four counters clear.
+
+01:37.000 --> 01:52.000
+Only then does Raahi issue a RoadReady Pass. Its QR shares readiness, bundled services, and validity, not document or payment numbers.
+
+01:52.000 --> 02:00.000
+Every portal validates a form. VisitTwin validates the visit. Raahi prevents the failed trip.

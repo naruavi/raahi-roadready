@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   UsersRound,
 } from 'lucide-react'
+import { rtoCentres } from '../rtoData'
 
 type Translate = (english: string, hindi: string) => string
 
@@ -19,36 +20,6 @@ type RtoFinderViewProps = {
   onStartRenewal: () => void
   onSelectCentre: (centre: string) => void
 }
-
-const centres = [
-  {
-    name: 'RTO Dwarka, Sector 10',
-    distance: '2.4 km away',
-    hours: '8:30 AM – 4:30 PM',
-    nextSlot: '31 Aug · 09:30 AM',
-    crowd: 'Usually quieter before 11 AM',
-    accessible: true,
-    services: ['Driving licence renewal', 'Driving test', 'Address change'],
-  },
-  {
-    name: 'RTO Janakpuri, District Centre',
-    distance: '5.8 km away',
-    hours: '9:00 AM – 5:00 PM',
-    nextSlot: '01 Sep · 11:00 AM',
-    crowd: 'Moderate wait expected',
-    accessible: true,
-    services: ['Driving licence renewal', 'Duplicate licence', 'Driving test'],
-  },
-  {
-    name: 'RTO Vasant Vihar',
-    distance: '8.1 km away',
-    hours: '8:30 AM – 4:30 PM',
-    nextSlot: '02 Sep · 10:15 AM',
-    crowd: 'Usually quieter after 2 PM',
-    accessible: false,
-    services: ['Driving licence renewal', 'Vehicle transfer', 'Address change'],
-  },
-]
 
 export function RtoFinderView({
   t,
@@ -157,7 +128,7 @@ export function RtoFinderView({
               </div>
 
               <div className="rto-list">
-                {centres.map((centre, index) => {
+                {rtoCentres.map((centre, index) => {
                   const selected = selectedCentre === centre.name
                   const serviceAvailable = centre.services.includes(service)
                   return (

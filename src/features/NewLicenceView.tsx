@@ -22,9 +22,9 @@ type NewLicenceViewProps = {
 }
 
 const learnerDates = [
-  { value: '03 Sep 2026', label: 'Thursday, 03 September', day: '03', month: 'Sep' },
-  { value: '04 Sep 2026', label: 'Friday, 04 September', day: '04', month: 'Sep' },
-  { value: '07 Sep 2026', label: 'Monday, 07 September', day: '07', month: 'Sep' },
+  { value: '17 Sep 2026', label: 'Thursday, 17 September', day: '17', month: 'Sep' },
+  { value: '18 Sep 2026', label: 'Friday, 18 September', day: '18', month: 'Sep' },
+  { value: '21 Sep 2026', label: 'Monday, 21 September', day: '21', month: 'Sep' },
 ]
 
 export function NewLicenceView({
@@ -49,7 +49,7 @@ export function NewLicenceView({
     mcwog: false,
   })
   const [documentsConfirmed, setDocumentsConfirmed] = useState(false)
-  const [testDate, setTestDate] = useState('03 Sep 2026')
+  const [testDate, setTestDate] = useState('17 Sep 2026')
   const [testTime, setTestTime] = useState('10:00 AM')
   const [paymentMethod, setPaymentMethod] = useState('UPI')
   const [loading, setLoading] = useState(false)
@@ -57,7 +57,7 @@ export function NewLicenceView({
 
   const age = useMemo(() => {
     const birth = new Date(dateOfBirth)
-    const today = new Date('2026-08-29')
+    const today = new Date('2026-09-08')
     let value = today.getFullYear() - birth.getFullYear()
     if (
       today.getMonth() < birth.getMonth() ||

@@ -168,7 +168,7 @@ export function ChallanView({
                     </div>
                     <div>
                       <dt>{t('Date and time', 'तारीख और समय')}</dt>
-                      <dd>24 Aug 2026 · 10:42 AM</dd>
+                      <dd>04 Sep 2026 · 10:42 AM</dd>
                     </div>
                     <div>
                       <dt>{t('Location', 'स्थान')}</dt>
@@ -182,7 +182,7 @@ export function ChallanView({
                 <aside className="challan-amount">
                   <span>{t('Amount due', 'देय राशि')}</span>
                   <strong>₹1,000</strong>
-                  <small>{t('Due by 7 Sep 2026', '7 सितंबर 2026 तक')}</small>
+                  <small>{t('Due by 21 Sep 2026', '21 सितंबर 2026 तक')}</small>
                 </aside>
               </div>
 

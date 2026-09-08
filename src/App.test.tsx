@@ -1,6 +1,6 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent, { type UserEvent } from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 
 async function signIn(user: UserEvent) {
@@ -16,6 +16,7 @@ describe('existing citizen journeys', () => {
 
   afterEach(() => {
     cleanup()
+    vi.restoreAllMocks()
   })
 
   it('signs in with the published demo credentials', async () => {
@@ -125,5 +126,52 @@ describe('existing citizen journeys', () => {
     expect(screen.getByText('Renewal fee receipt')).toBeInTheDocument()
     expect(screen.getByText('Appointment slip')).toBeInTheDocument()
     expect(screen.getByText('Application summary')).toBeInTheDocument()
+  })
+
+  it('does not present an expired legacy appointment as upcoming', async () => {
+    localStorage.setItem('raahi-authenticated', 'true')
+    localStorage.setItem(
+      'raahi-application',
+      JSON.stringify({
+        id: 'DL-RN-2026-OLD',
+        submittedAt: '29 Aug 2026, 7:18 PM',
+        appointmentDate: '31 Aug 2026',
+        appointmentTime: '09:30 AM',
+        centre: 'RTO Dwarka, Sector 10',
+      }),
+    )
+
+    render(<App />)
+
+    expect(
+      await screen.findByRole('heading', { name: /Road services/i }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('heading', { name: 'Appointment confirmed' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('expires a current-version appointment after its scheduled day', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(
+      new Date('2026-09-17T00:00:00+05:30').getTime(),
+    )
+    localStorage.setItem('raahi-authenticated', 'true')
+    localStorage.setItem(
+      'raahi-application',
+      JSON.stringify({
+        version: 2,
+        id: 'DL-RN-2026-082941',
+        submittedAt: '08 Sep 2026, 7:18 PM',
+        appointmentDate: '14 Sep 2026',
+        appointmentTime: '09:30 AM',
+        centre: 'RTO Dwarka, Sector 10',
+      }),
+    )
+
+    render(<App />)
+
+    expect(
+      screen.queryByRole('heading', { name: 'Appointment confirmed' }),
+    ).not.toBeInTheDocument()
   })
 })
