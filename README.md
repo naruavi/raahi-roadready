@@ -9,7 +9,7 @@ shows the exact service counter where a linked application would fail, explains
 the consequence, applies an approved correction across the combined journey,
 and replays the route until every counter is clear.
 
-The final two-minute Phase 2 video is
+The final under-two-minute Phase 2 video is
 [`public/raahi-phase2-demo.mp4`](public/raahi-phase2-demo.mp4), with captions in
 [`public/raahi-phase2-demo.vtt`](public/raahi-phase2-demo.vtt). The exact pitch
 and shot plan are in [`PHASE2-PITCH.md`](PHASE2-PITCH.md).
