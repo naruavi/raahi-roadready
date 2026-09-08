@@ -16,48 +16,41 @@ counter journey**.
 
 ## Two-minute narration
 
-### Minute 1 — problem and product
+### Minute 1 — follow Asha
 
-A citizen should not lose a day because two documents spell the same name
-differently.
+Meet Asha. Tomorrow, she plans to renew her driving licence. She thinks it will
+take one visit.
 
-But a licence renewal can quickly become three disconnected tasks: renew the
-licence, update an address, and clear a challan. The citizen repeats the same
-details, guesses the right order, reaches the RTO, and may discover one mismatch
-only after standing in line.
+But her address changed, a challan is pending, and one document shortens her
+middle name. Today, that can mean three portals, repeated forms—and another day
+away from work.
 
-Raahi starts with the outcome, not the department. The citizen says, “My
-licence expires next month, I moved, and I want to check challans before I
-visit.”
+Asha opens Raahi. Instead of choosing a department, she starts with the outcome
+she needs: finish everything in one successful visit.
 
-RoadReady translates that sentence into one ordered journey. It bundles the
-three services, removes repeated fields, checks dependencies, and plans one
-coordinated visit. The citizen no longer needs to understand which portal,
-form, or office owns each step.
+She says it naturally: “My licence expires next month. I moved. Check my
+challans before I go.” That is all Raahi needs.
 
-### Minute 2 — the differentiator
+RoadReady turns her sentence into one sequence: clear the challan, update the
+address, renew the licence, then visit the right RTO. Three journeys become one.
 
-For Phase 2, we built VisitTwin.
+### Minute 2 — the turning point
 
-Most portals validate fields. VisitTwin rehearses the visit itself. It simulates
-each service counter and shows not only that something is wrong, but exactly
-where the journey will stop and what happens next.
+Now comes the moment that changes Asha’s day.
 
-Here, entry verification passes, but the address-update counter finds “Aarav K
-Mehta” on one record and “Aarav Kumar Mehta” on another. VisitTwin makes the
-cost visible: one workday, a 28-kilometre return trip, and eleven days until the
-next slot. Without it, the citizen returns home, corrects the record, and books
-again.
+VisitTwin rehearses the visit before she leaves home. Counter one clears. At
+counter two—stop. Her names do not match. The cost: one workday, a 28-kilometre
+return trip, and eleven days for another slot.
 
-Raahi explains the issue, asks for consent, and applies the expanded name once
-across the linked application. VisitTwin immediately replays the route: all four
-counters clear.
+Raahi explains the mismatch. Asha approves one correction. It flows across the
+linked services, and VisitTwin runs again. One, two, three, four—every counter
+clears.
 
-Only then does Raahi issue a RoadReady Pass. Its QR shares readiness, bundled
-services, and validity—not licence, address-proof, or payment numbers.
+Only now does Asha receive her RoadReady Pass. The QR proves what is ready and
+where she is going, without exposing her licence, address proof, or payment
+numbers.
 
-Every portal validates a form. VisitTwin validates the visit—and prices the one
-the citizen was about to waste.
+Asha leaves home certain—not hopeful.
 
 Raahi does not digitize the queue. It prevents the failed visit.
 

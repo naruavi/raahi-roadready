@@ -1,28 +1,28 @@
 WEBVTT
 
 00:00.000 --> 00:08.000
-A citizen should not lose a day because two documents spell the same name differently.
+Meet Asha. Tomorrow, she plans to renew her driving licence. She thinks it will take one visit.
 
 00:08.000 --> 00:22.000
-But a licence renewal can quickly become three disconnected tasks: renew the licence, update an address, and clear a challan.
+But her address changed, a challan is pending, and one document shortens her middle name. That can mean three portals, repeated forms, and another day away from work.
 
 00:22.000 --> 00:36.000
-The citizen repeats the same details, guesses the right order, reaches the RTO, and may discover one mismatch only after standing in line.
+Asha opens Raahi. Instead of choosing a department, she starts with one outcome: finish everything in one successful visit.
 
 00:36.000 --> 00:50.000
-Raahi starts with the outcome, not the department. The citizen describes what needs to get done in everyday language.
+She says it naturally: “My licence expires next month. I moved. Check my challans before I go.” That is all Raahi needs.
 
 00:50.000 --> 01:04.000
-RoadReady translates that sentence into one ordered journey, bundles the services, removes repeated fields, and plans one coordinated visit.
+RoadReady turns her sentence into one sequence: clear the challan, update the address, renew the licence, then visit the right RTO. Three journeys become one.
 
 01:04.000 --> 01:22.000
-For Phase 2, we built VisitTwin. It rehearses each counter, shows where the journey stops, and makes the cost visible: one workday, a 28-kilometre return trip, and eleven days to the next slot.
+Now comes the moment that changes Asha’s day. VisitTwin rehearses the visit. Counter one clears. At counter two—stop. Her names do not match. One workday, 28 kilometres, and eleven days for another slot.
 
 01:22.000 --> 01:37.000
-Raahi explains the mismatch, asks for consent, applies the correction once across the linked application, and replays the route. All four counters clear.
+Raahi explains the mismatch. Asha approves one correction. It flows across every linked service, and VisitTwin runs again. One, two, three, four—every counter clears.
 
 01:37.000 --> 01:52.000
-Only then does Raahi issue a RoadReady Pass. Its QR shares readiness, bundled services, and validity, not document or payment numbers.
+Only now does Asha receive her RoadReady Pass. The QR proves what is ready and where she is going, without exposing her licence, address proof, or payment numbers.
 
 01:52.000 --> 02:00.000
-Every portal validates a form. VisitTwin validates the visit. Raahi prevents the failed trip.
+Asha leaves home certain—not hopeful. Raahi does not digitize the queue. It prevents the failed visit.
