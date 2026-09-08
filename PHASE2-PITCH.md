@@ -14,7 +14,7 @@ cost and shows the existing RoadReady journey. Minute two spends almost all its
 time on one differentiator: **VisitTwin, a pre-visit simulation of the service
 counter journey**.
 
-## Two-minute narration
+## 96-second narration
 
 ### Minute 1 — follow Asha
 
@@ -54,15 +54,15 @@ Raahi does not digitize the queue. It prevents the failed visit.
 
 | Time | Visual | Story beat |
 |---|---|---|
-| 0:00–0:09 | Raahi title | Human hook |
-| 0:09–0:23 | Three tasks / three visits | Cost of fragmentation |
-| 0:23–0:35 | Home dashboard | Product promise |
-| 0:35–0:48 | Natural-language intent | Outcome, not portal |
-| 0:48–1:01 | Combined journey | One ordered plan |
-| 1:01–1:21 | VisitTwin failure forecast | Exact failure point |
-| 1:21–1:37 | Successful replay | One correction everywhere |
-| 1:37–1:51 | RoadReady Pass | Privacy-preserving proof |
-| 1:51–2:00 | Closing statement | Memorable category claim |
+| 0:00–0:07.2 | Raahi title | Human hook |
+| 0:07.2–0:18.4 | Three tasks / three visits | Cost of fragmentation |
+| 0:18.4–0:28 | Home dashboard | Product promise |
+| 0:28–0:38.4 | Natural-language intent | Outcome, not portal |
+| 0:38.4–0:48.8 | Combined journey | One ordered plan |
+| 0:48.8–1:04.8 | VisitTwin failure forecast | Exact failure point |
+| 1:04.8–1:17.6 | Successful replay | One correction everywhere |
+| 1:17.6–1:28.8 | RoadReady Pass | Privacy-preserving proof |
+| 1:28.8–1:36 | Closing statement | Memorable category claim |
 
 ## Delivery notes
 
