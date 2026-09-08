@@ -99,7 +99,7 @@ describe('production-shaped service journeys', () => {
       screen.getByRole('button', { name: 'Change appointment' }),
     )
     await user.click(
-      screen.getByRole('button', { name: 'Wednesday, 02 September' }),
+      screen.getByRole('button', { name: 'Wednesday, 16 September' }),
     )
     await user.click(screen.getByRole('button', { name: '02:30 PM' }))
     await user.click(
@@ -107,7 +107,7 @@ describe('production-shaped service journeys', () => {
     )
 
     expect(screen.getByText('Appointment updated')).toBeInTheDocument()
-    expect(screen.getByText(/02 Sep 2026 · 02:30 PM/)).toBeInTheDocument()
+    expect(screen.getByText(/16 Sep 2026 · 02:30 PM/)).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Send location' }))
     expect(

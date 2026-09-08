@@ -34,6 +34,11 @@ import './App.css'
 import { MobilityHeroScene } from './components/MobilityHeroScene'
 import { TransportServiceHub } from './components/TransportServiceHub'
 import {
+  demoAppointmentDates,
+  getAppointmentExpiry,
+  getAppointmentExpiryIso,
+} from './demoSchedule'
+import {
   AppointmentManagerView,
   type AppointmentDetails,
 } from './features/AppointmentManagerView'
@@ -64,6 +69,7 @@ type RenewalForm = {
 }
 
 type Application = {
+  version: 2
   id: string
   submittedAt: string
   appointmentDate: string
@@ -82,14 +88,29 @@ const initialForm: RenewalForm = {
   address: 'Sector 12, Dwarka, New Delhi – 110075',
 }
 
-const appointmentDates = [
-  { day: '31', weekday: 'Mon', month: 'Aug' },
-  { day: '01', weekday: 'Tue', month: 'Sep' },
-  { day: '02', weekday: 'Wed', month: 'Sep' },
-]
-
 const appointmentSlots = ['09:30 AM', '11:00 AM', '02:30 PM']
+const APPLICATION_STORAGE_VERSION = 2 as const
+const currentAppointmentDates = new Set<string>(
+  demoAppointmentDates.map((date) => date.value),
+)
 const showLegacyServicePanel = false
+
+const readStoredApplication = (): Application | null => {
+  try {
+    const stored = localStorage.getItem('raahi-application')
+    if (!stored) return null
+
+    const application = JSON.parse(stored) as Partial<Application>
+    return application.version === APPLICATION_STORAGE_VERSION &&
+      typeof application.appointmentDate === 'string' &&
+      currentAppointmentDates.has(application.appointmentDate) &&
+      getAppointmentExpiry(application.appointmentDate) > Date.now()
+      ? (application as Application)
+      : null
+  } catch {
+    return null
+  }
+}
 
 function App() {
   const [view, setView] = useState<View>('home')
@@ -110,11 +131,13 @@ function App() {
   const [step, setStep] = useState(1)
   const [form, setForm] = useState<RenewalForm>(initialForm)
   const [documentsConfirmed, setDocumentsConfirmed] = useState(false)
-  const [selectedDate, setSelectedDate] = useState('31 Aug 2026')
+  const [selectedDate, setSelectedDate] = useState('14 Sep 2026')
   const [selectedSlot, setSelectedSlot] = useState('09:30 AM')
   const [selectedCentre, setSelectedCentre] = useState(
     'RTO Dwarka, Sector 10',
   )
+  const [appointmentOverride, setAppointmentOverride] =
+    useState<AppointmentDetails | null>(null)
   const [rtoReturnView, setRtoReturnView] = useState<'renew' | 'new-licence'>(
     'renew',
   )
@@ -123,17 +146,16 @@ function App() {
   const [error, setError] = useState('')
   const [trackingQuery, setTrackingQuery] = useState(APPLICATION_ID)
   const [trackingVisible, setTrackingVisible] = useState(true)
-  const [application, setApplication] = useState<Application | null>(() => {
-    const saved = localStorage.getItem('raahi-application')
-    return saved ? (JSON.parse(saved) as Application) : null
-  })
+  const [application, setApplication] = useState<Application | null>(
+    readStoredApplication,
+  )
 
   const t = (english: string, hindi: string) =>
     language === 'en' ? english : hindi
 
   const age = useMemo(() => {
     const birth = new Date(form.dateOfBirth)
-    const today = new Date('2026-08-29')
+    const today = new Date('2026-09-08')
     let result = today.getFullYear() - birth.getFullYear()
     if (
       today.getMonth() < birth.getMonth() ||
@@ -210,6 +232,9 @@ function App() {
 
   const navigate = (nextView: View) => {
     setError('')
+    if (nextView !== 'appointment') {
+      setAppointmentOverride(null)
+    }
     setView(nextView)
     if (nextView === 'renew' && step === 6) {
       setStep(1)
@@ -281,8 +306,9 @@ function App() {
     setLoading(true)
     window.setTimeout(() => {
       const submitted: Application = {
+        version: APPLICATION_STORAGE_VERSION,
         id: APPLICATION_ID,
-        submittedAt: '29 Aug 2026, 7:18 PM',
+        submittedAt: '08 Sep 2026, 7:18 PM',
         appointmentDate: selectedDate,
         appointmentTime: selectedSlot,
         centre: selectedCentre,
@@ -298,7 +324,7 @@ function App() {
     setForm(initialForm)
     setDocumentsConfirmed(false)
     setConsent(false)
-    setSelectedDate('31 Aug 2026')
+    setSelectedDate('14 Sep 2026')
     setSelectedSlot('09:30 AM')
     setStep(1)
     setView('renew')
@@ -362,8 +388,9 @@ function App() {
     setSelectedCentre(updated.centre)
 
     const nextApplication: Application = {
+      version: APPLICATION_STORAGE_VERSION,
       id: application?.id ?? APPLICATION_ID,
-      submittedAt: application?.submittedAt ?? '29 Aug 2026, 7:18 PM',
+      submittedAt: application?.submittedAt ?? '08 Sep 2026, 7:18 PM',
       appointmentDate: updated.date,
       appointmentTime: updated.time,
       centre: updated.centre,
@@ -372,7 +399,26 @@ function App() {
       'raahi-application',
       JSON.stringify(nextApplication),
     )
+    const storedPass = localStorage.getItem('raahi-roadready-pass')
+    if (storedPass) {
+      try {
+        const pass = JSON.parse(storedPass) as Record<string, unknown>
+        if (pass.version === 2 && pass.centre === updated.centre) {
+          localStorage.setItem(
+            'raahi-roadready-pass',
+            JSON.stringify({
+              ...pass,
+              appointmentDate: updated.date,
+              expiresAt: getAppointmentExpiryIso(updated.date),
+            }),
+          )
+        }
+      } catch {
+        localStorage.removeItem('raahi-roadready-pass')
+      }
+    }
     setApplication(nextApplication)
+    setAppointmentOverride(updated)
   }
 
   const steps = [
@@ -725,12 +771,12 @@ function App() {
                 <Sparkles size={22} aria-hidden="true" />
               </span>
               <span>
-                <small>{t('New · One-Visit Guarantee', 'नया · एक-यात्रा गारंटी')}</small>
+                <small>{t('New · VisitTwin simulation', 'नया · VisitTwin सिम्युलेशन')}</small>
                 <strong>{t('Create a RoadReady Pass', 'RoadReady पास बनाएँ')}</strong>
                 <em>
                   {t(
-                    'Bundle services and catch issues before you travel',
-                    'सेवाएँ जोड़ें और यात्रा से पहले समस्याएँ पकड़ें',
+                    'Rehearse every counter and prevent a failed visit',
+                    'हर काउंटर का अभ्यास करें और विफल यात्रा रोकें',
                   )}
                 </em>
               </span>
@@ -1164,8 +1210,8 @@ function App() {
               <strong>{t('Eligible for standard renewal', 'सामान्य नवीनीकरण के लिए पात्र')}</strong>
               <p>
                 {t(
-                  `Your licence expires on 15 September 2026. At age ${age}, this demo does not require a medical certificate.`,
-                  `आपका लाइसेंस 15 सितंबर 2026 को समाप्त होगा। ${age} वर्ष की आयु में इस डेमो के लिए मेडिकल प्रमाणपत्र आवश्यक नहीं है।`,
+                  `Your licence expires on 30 September 2026. At age ${age}, this demo does not require a medical certificate.`,
+                  `आपका लाइसेंस 30 सितंबर 2026 को समाप्त होगा। ${age} वर्ष की आयु में इस डेमो के लिए मेडिकल प्रमाणपत्र आवश्यक नहीं है।`,
                 )}
               </p>
             </div>
@@ -1337,8 +1383,8 @@ function App() {
               <div className="selection-group">
                 <label>{t('Available date', 'उपलब्ध तारीख')}</label>
                 <div className="date-options">
-                  {appointmentDates.map((date) => {
-                    const value = `${date.day} ${date.month} 2026`
+                  {demoAppointmentDates.map((date) => {
+                    const value = date.value
                     return (
                       <button
                         type="button"
@@ -1660,7 +1706,7 @@ function App() {
                 <div>
                   <p className="overline">{t('Your next action', 'आपका अगला कदम')}</p>
                   <strong>
-                    {application?.appointmentDate ?? '31 Aug 2026'} ·{' '}
+                    {application?.appointmentDate ?? '14 Sep 2026'} ·{' '}
                     {application?.appointmentTime ?? '09:30 AM'}
                   </strong>
                   <span>
@@ -1675,17 +1721,17 @@ function App() {
                 {[
                   {
                     label: t('Application submitted', 'आवेदन जमा हुआ'),
-                    meta: t('29 Aug · Complete', '29 अगस्त · पूरा'),
+                    meta: t('08 Sep · Complete', '08 सितंबर · पूरा'),
                     done: true,
                   },
                   {
                     label: t('Documents checked', 'दस्तावेज़ जाँचे गए'),
-                    meta: t('29 Aug · Complete', '29 अगस्त · पूरा'),
+                    meta: t('08 Sep · Complete', '08 सितंबर · पूरा'),
                     done: true,
                   },
                   {
                     label: t('Visit the centre', 'केंद्र पर जाएँ'),
-                    meta: t('31 Aug · Next', '31 अगस्त · अगला कदम'),
+                    meta: t('14 Sep · Next', '14 सितंबर · अगला कदम'),
                     done: false,
                     current: true,
                   },
@@ -1762,7 +1808,7 @@ function App() {
             {
               icon: CalendarDays,
               title: t('Appointment slip', 'अपॉइंटमेंट स्लिप'),
-              note: t('31 Aug 2026 · 09:30 AM', '31 अगस्त 2026 · 09:30 AM'),
+              note: t('14 Sep 2026 · 09:30 AM', '14 सितंबर 2026 · 09:30 AM'),
               file: 'Appointment slip',
             },
             {
@@ -1912,8 +1958,18 @@ function App() {
         <RoadReadyView
           t={t}
           centre={selectedCentre}
+          appointmentDate={selectedDate}
           onBack={() => navigate('home')}
-          onManageAppointment={() => navigate('appointment')}
+          onManageAppointment={(appointment) => {
+            setSelectedCentre(appointment.centre)
+            setSelectedDate(appointment.date)
+            setAppointmentOverride({
+              date: appointment.date,
+              time: selectedSlot,
+              centre: appointment.centre,
+            })
+            navigate('appointment')
+          }}
         />
       )}
       {view === 'new-licence' && (
@@ -1930,11 +1986,13 @@ function App() {
       {view === 'appointment' && (
         <AppointmentManagerView
           t={t}
-          appointment={{
-            date: application?.appointmentDate ?? selectedDate,
-            time: application?.appointmentTime ?? selectedSlot,
-            centre: application?.centre ?? selectedCentre,
-          }}
+          appointment={
+            appointmentOverride ?? {
+              date: application?.appointmentDate ?? selectedDate,
+              time: application?.appointmentTime ?? selectedSlot,
+              centre: application?.centre ?? selectedCentre,
+            }
+          }
           onBack={() => navigate('home')}
           onUpdate={updateAppointment}
         />

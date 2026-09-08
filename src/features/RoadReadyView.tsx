@@ -1,10 +1,18 @@
-import { useMemo, useState } from 'react'
+import {
+  type CSSProperties,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import {
   ArrowLeft,
   ArrowRight,
   BadgeCheck,
+  Building2,
   Check,
   CheckCircle2,
+  CircleAlert,
   ClipboardCheck,
   Download,
   FileSearch,
@@ -12,8 +20,8 @@ import {
   Languages,
   LockKeyhole,
   MapPin,
+  PlayCircle,
   Route,
-  ScanLine,
   ShieldCheck,
   Sparkles,
   UserCheck,
@@ -21,14 +29,20 @@ import {
   Wrench,
 } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
+import { getAppointmentExpiryIso } from '../demoSchedule'
+import { getRtoCentre } from '../rtoData'
 
 type Translate = (english: string, hindi: string) => string
 
 type RoadReadyViewProps = {
   t: Translate
   centre: string
+  appointmentDate: string
   onBack: () => void
-  onManageAppointment: () => void
+  onManageAppointment: (appointment: {
+    centre: string
+    date: string
+  }) => void
 }
 
 type Stage = 'intent' | 'plan' | 'preflight' | 'pass'
@@ -36,27 +50,73 @@ type Stage = 'intent' | 'plan' | 'preflight' | 'pass'
 const defaultIntent =
   'My licence expires next month and I moved to a new address. Check any challans before I visit.'
 
-const qrPayload = JSON.stringify({
-  type: 'RAAHI_ROAD_READY_V1',
-  passId: 'RR-0829-41',
-  checksPassed: 4,
-  services: ['DL_RENEWAL', 'ADDRESS_UPDATE', 'CHALLAN_CLEARANCE'],
-  centre: 'RTO_DWARKA',
-  expiresAt: '2026-08-30T20:30:00+05:30',
-  synthetic: true,
-})
+const PASS_STORAGE_KEY = 'raahi-roadready-pass'
+const PASS_ID = 'RR-0908-41'
+
+type StoredRoadReadyPass = {
+  version: 2
+  passId: string
+  intent: string
+  services: string[]
+  centre: string
+  appointmentDate: string
+  expiresAt: string
+  visitTwinVerified: true
+  preventedFailure: boolean
+}
+
+const readStoredPass = (): StoredRoadReadyPass | null => {
+  try {
+    const stored = localStorage.getItem(PASS_STORAGE_KEY)
+    if (!stored) return null
+
+    const pass = JSON.parse(stored) as Partial<StoredRoadReadyPass>
+    if (
+      pass.version !== 2 ||
+      pass.visitTwinVerified !== true ||
+      pass.passId !== PASS_ID ||
+      typeof pass.preventedFailure !== 'boolean' ||
+      typeof pass.centre !== 'string' ||
+      typeof pass.appointmentDate !== 'string' ||
+      typeof pass.expiresAt !== 'string' ||
+      Date.parse(pass.expiresAt) <= Date.now() ||
+      !Array.isArray(pass.services)
+    ) {
+      return null
+    }
+
+    const centre = getRtoCentre(pass.centre)
+    const supportsPlan =
+      (!pass.services.includes('renew') ||
+        centre.services.includes('Driving licence renewal')) &&
+      (!pass.services.includes('address') ||
+        centre.services.includes('Address change'))
+
+    return supportsPlan ? (pass as StoredRoadReadyPass) : null
+  } catch {
+    return null
+  }
+}
 
 export function RoadReadyView({
   t,
   centre,
+  appointmentDate,
   onBack,
   onManageAppointment,
 }: RoadReadyViewProps) {
-  const savedPass = localStorage.getItem('raahi-roadready-pass') === 'issued'
+  const savedPass = readStoredPass()
+  const passCentre = savedPass?.centre ?? centre
+  const passAppointmentDate = savedPass?.appointmentDate ?? appointmentDate
+  const passExpiry =
+    savedPass?.expiresAt ?? getAppointmentExpiryIso(appointmentDate)
   const [stage, setStage] = useState<Stage>(savedPass ? 'pass' : 'intent')
-  const [intent, setIntent] = useState(defaultIntent)
-  const [nameMismatchResolved, setNameMismatchResolved] = useState(false)
+  const [intent, setIntent] = useState(savedPass?.intent ?? defaultIntent)
+  const [nameMismatchResolved, setNameMismatchResolved] = useState(
+    savedPass?.preventedFailure ?? false,
+  )
   const [shareStatus, setShareStatus] = useState('')
+  const replayHeadingRef = useRef<HTMLHeadingElement>(null)
 
   const services = useMemo(() => {
     const normalized = intent.toLowerCase()
@@ -110,19 +170,187 @@ export function RoadReadyView({
         ]
   }, [intent, t])
 
+  const hasAddressUpdate = services.some((service) => service.id === 'address')
+  const hasChallanClearance = services.some((service) => service.id === 'challan')
+  const hasRenewal = services.some((service) => service.id === 'renew')
+  const preventedFailure = hasAddressUpdate && nameMismatchResolved
+  const centreDetails = getRtoCentre(passCentre)
+  const centreSupportsAddress =
+    !hasAddressUpdate || centreDetails.services.includes('Address change')
+  const centreSupportsRenewal =
+    !hasRenewal || centreDetails.services.includes('Driving licence renewal')
+  const centreSupportsPlan = centreSupportsAddress && centreSupportsRenewal
+  const isVisitReady =
+    (!hasAddressUpdate || nameMismatchResolved) && centreSupportsPlan
+
+  const preflightChecks = [
+    {
+      title: t('Current licence', 'वर्तमान लाइसेंस'),
+      note: t('Valid and readable', 'मान्य और स्पष्ट'),
+      passed: true,
+    },
+    {
+      title: t('Address proof', 'पता प्रमाण'),
+      note: t('Current and accepted', 'वर्तमान और स्वीकृत'),
+      passed: true,
+    },
+    {
+      title: t('Photo quality', 'फोटो गुणवत्ता'),
+      note: t('Face and background clear', 'चेहरा और पृष्ठभूमि स्पष्ट'),
+      passed: true,
+    },
+    ...(hasAddressUpdate
+      ? [
+          {
+            title: t('Name consistency', 'नाम की समानता'),
+            note: nameMismatchResolved
+              ? t('Resolved across this application', 'इस आवेदन में हल किया गया')
+              : t(
+                  '“Aarav K Mehta” differs from “Aarav Kumar Mehta”',
+                  '“Aarav K Mehta” और “Aarav Kumar Mehta” अलग हैं',
+                ),
+            passed: nameMismatchResolved,
+          },
+        ]
+      : []),
+    ...(!centreSupportsPlan
+      ? [
+          {
+            title: t('Centre capability', 'केंद्र क्षमता'),
+            note: t(
+              `${passCentre} does not support every in-person service in this plan`,
+              `${passCentre} इस योजना की सभी व्यक्तिगत सेवाएँ प्रदान नहीं करता`,
+            ),
+            passed: false,
+          },
+        ]
+      : []),
+  ]
+
+  const visitSimulationSteps = [
+    {
+      title: t('Entry verification', 'प्रवेश सत्यापन'),
+      note: t('Licence and appointment details match', 'लाइसेंस और अपॉइंटमेंट विवरण मेल खाते हैं'),
+      status: 'passed',
+    },
+    ...(hasAddressUpdate
+      ? [
+          {
+            title: t('Address update counter', 'पता अपडेट काउंटर'),
+            note: nameMismatchResolved
+              ? centreSupportsAddress
+                ? t('Expanded name accepted with consent', 'पूरा नाम सहमति के साथ स्वीकार हुआ')
+                : t(
+                    'Selected centre does not offer address changes',
+                    'चुना गया केंद्र पता परिवर्तन नहीं करता',
+                  )
+              : t('Name mismatch would stop the application', 'नाम की असमानता आवेदन रोक देती'),
+            status:
+              nameMismatchResolved && centreSupportsAddress
+                ? 'passed'
+                : 'blocked',
+          },
+        ]
+      : []),
+    ...(hasChallanClearance
+      ? [
+          {
+            title: t('Challan clearance desk', 'चालान निपटान डेस्क'),
+            note: isVisitReady
+              ? t('Clearance is linked to the combined plan', 'निपटान संयुक्त योजना से जुड़ा है')
+              : t('Waiting for identity consistency', 'पहचान की समानता की प्रतीक्षा'),
+            status: isVisitReady ? 'passed' : 'waiting',
+          },
+        ]
+      : []),
+    ...(hasRenewal
+      ? [
+          {
+            title: t('Renewal approval', 'नवीनीकरण स्वीकृति'),
+            note: isVisitReady
+              ? t(
+                  hasAddressUpdate
+                    ? 'Renewal and address update accepted together'
+                    : 'Renewal application is ready for approval',
+                  hasAddressUpdate
+                    ? 'नवीनीकरण और पता अपडेट साथ स्वीकार हुए'
+                    : 'नवीनीकरण आवेदन स्वीकृति के लिए तैयार है',
+                )
+              : t('One-visit token cannot be issued yet', 'एक-यात्रा टोकन अभी जारी नहीं हो सकता'),
+            status: isVisitReady ? 'passed' : 'waiting',
+          },
+        ]
+      : []),
+    ...(!hasAddressUpdate && !hasChallanClearance && !hasRenewal
+      ? [
+          {
+            title: t('Guided service desk', 'निर्देशित सेवा डेस्क'),
+            note: t('A specialist can clarify the requested outcome', 'विशेषज्ञ अनुरोध को स्पष्ट कर सकता है'),
+            status: 'passed',
+          },
+        ]
+      : []),
+  ] as const
+
+  const qrPayload = useMemo(
+    () =>
+      JSON.stringify({
+        type: 'RAAHI_ROAD_READY_V2',
+        passId: PASS_ID,
+        checksPassed: preflightChecks.length,
+        services: services.map((service) => {
+          if (service.id === 'renew') return 'DL_RENEWAL'
+          if (service.id === 'address') return 'ADDRESS_UPDATE'
+          if (service.id === 'challan') return 'CHALLAN_CLEARANCE'
+          return 'GUIDED_SERVICE'
+        }),
+        centre: passCentre,
+        appointmentDate: passAppointmentDate,
+        expiresAt: passExpiry,
+        visitTwinVerified: true,
+        preventedFailure,
+        synthetic: true,
+      }),
+    [
+      passAppointmentDate,
+      passCentre,
+      passExpiry,
+      preflightChecks.length,
+      preventedFailure,
+      services,
+    ],
+  )
+
+  useEffect(() => {
+    if (nameMismatchResolved) {
+      replayHeadingRef.current?.focus()
+    }
+  }, [nameMismatchResolved])
+
   const buildPlan = () => {
     if (!intent.trim()) return
     setStage('plan')
   }
 
   const generatePass = () => {
-    localStorage.setItem('raahi-roadready-pass', 'issued')
+    const pass: StoredRoadReadyPass = {
+      version: 2,
+      passId: PASS_ID,
+      intent,
+      services: services.map((service) => service.id),
+      centre,
+      appointmentDate,
+      expiresAt: getAppointmentExpiryIso(appointmentDate),
+      visitTwinVerified: true,
+      preventedFailure,
+    }
+    localStorage.setItem(PASS_STORAGE_KEY, JSON.stringify(pass))
     localStorage.setItem('raahi-roadready-intent', intent)
     setStage('pass')
   }
 
   const resetPass = () => {
-    localStorage.removeItem('raahi-roadready-pass')
+    localStorage.removeItem(PASS_STORAGE_KEY)
     localStorage.removeItem('raahi-roadready-intent')
     setNameMismatchResolved(false)
     setShareStatus('')
@@ -134,12 +362,12 @@ export function RoadReadyView({
       'ROADREADY ONE-VISIT PASS',
       'Independent hackathon prototype — synthetic data',
       '',
-      'Pass: RR-0829-41',
+      `Pass: ${PASS_ID}`,
       'Readiness: 100%',
-      'Checks passed: 4',
-      `Centre: ${centre}`,
-      'Services: Driving licence renewal, address update, challan clearance',
-      'Valid until: 30 Aug 2026, 8:30 PM',
+      `Checks passed: ${preflightChecks.length}`,
+      `Centre: ${passCentre}`,
+      `Services: ${services.map((service) => service.title).join(', ')}`,
+      `Valid through appointment: ${passAppointmentDate}`,
       '',
       'This pass shares readiness status only. It does not contain document numbers.',
     ].join('\n')
@@ -154,7 +382,7 @@ export function RoadReadyView({
   }
 
   const sharePass = async () => {
-    const text = `RoadReady Pass RR-0829-41 · ${centre} · Ready for one visit`
+    const text = `RoadReady Pass ${PASS_ID} · ${passCentre} · Ready for one visit`
     try {
       if (navigator.share) {
         await navigator.share({ title: 'RoadReady Pass', text })
@@ -309,8 +537,8 @@ export function RoadReadyView({
                 {t('Edit request', 'अनुरोध बदलें')}
               </button>
               <button className="button primary" onClick={() => setStage('preflight')}>
-                <ScanLine size={18} aria-hidden="true" />
-                {t('Run document pre-check', 'दस्तावेज़ पूर्व-जाँच चलाएँ')}
+                <PlayCircle size={18} aria-hidden="true" />
+                {t('Simulate my RTO visit', 'मेरी RTO यात्रा सिम्युलेट करें')}
               </button>
             </div>
           </section>
@@ -319,8 +547,8 @@ export function RoadReadyView({
         {stage === 'preflight' && (
           <section className="tool-card">
             <div className="preflight-topline">
-              <div className={`readiness-score ${nameMismatchResolved ? 'ready' : ''}`}>
-                <strong>{nameMismatchResolved ? '100' : '82'}</strong>
+              <div className={`readiness-score ${isVisitReady ? 'ready' : ''}`}>
+                <strong>{isVisitReady ? '100' : '82'}</strong>
                 <span>{t('Ready score', 'तैयारी स्कोर')}</span>
               </div>
               <div className="stage-heading">
@@ -328,16 +556,16 @@ export function RoadReadyView({
                   <FileSearch size={24} aria-hidden="true" />
                 </span>
                 <div>
-                  <p className="overline">{t('Synthetic document preflight', 'काल्पनिक दस्तावेज़ पूर्व-जाँच')}</p>
+                  <p className="overline">{t('VisitTwin · pre-visit simulation', 'VisitTwin · यात्रा-पूर्व सिम्युलेशन')}</p>
                   <h2>
-                    {nameMismatchResolved
-                      ? t('Ready for one visit', 'एक यात्रा के लिए तैयार')
-                      : t('Preflight found 1 issue', 'पूर्व-जाँच में 1 समस्या मिली')}
+                    {isVisitReady
+                      ? t('Your one-visit route is clear', 'आपकी एक-यात्रा प्रक्रिया तैयार है')
+                      : t('Your visit would stop at counter 2', 'आपकी यात्रा काउंटर 2 पर रुक जाती')}
                   </h2>
                   <p>
                     {t(
-                      'Resolve issues now instead of discovering them at the service counter.',
-                      'सेवा काउंटर पर पता चलने के बजाय समस्याएँ अभी हल करें।',
+                      'Raahi rehearses the complete visit and explains the exact failure point before you travel.',
+                      'राही पूरी यात्रा का अभ्यास करता है और जाने से पहले विफलता का सटीक स्थान समझाता है।',
                     )}
                   </p>
                 </div>
@@ -345,33 +573,7 @@ export function RoadReadyView({
             </div>
 
             <div className="preflight-checks">
-              {[
-                {
-                  title: t('Current licence', 'वर्तमान लाइसेंस'),
-                  note: t('Valid and readable', 'मान्य और स्पष्ट'),
-                  passed: true,
-                },
-                {
-                  title: t('Address proof', 'पता प्रमाण'),
-                  note: t('Current and accepted', 'वर्तमान और स्वीकृत'),
-                  passed: true,
-                },
-                {
-                  title: t('Photo quality', 'फोटो गुणवत्ता'),
-                  note: t('Face and background clear', 'चेहरा और पृष्ठभूमि स्पष्ट'),
-                  passed: true,
-                },
-                {
-                  title: t('Name consistency', 'नाम की समानता'),
-                  note: nameMismatchResolved
-                    ? t('Resolved across this application', 'इस आवेदन में हल किया गया')
-                    : t(
-                        '“Aarav K Mehta” differs from “Aarav Kumar Mehta”',
-                        '“Aarav K Mehta” और “Aarav Kumar Mehta” अलग हैं',
-                      ),
-                  passed: nameMismatchResolved,
-                },
-              ].map((check) => (
+              {preflightChecks.map((check) => (
                 <div className={`preflight-check ${check.passed ? 'passed' : 'issue'}`} key={check.title}>
                   <span>
                     {check.passed ? (
@@ -389,7 +591,126 @@ export function RoadReadyView({
               ))}
             </div>
 
-            {!nameMismatchResolved ? (
+            <div className={`visit-twin ${isVisitReady ? 'cleared' : 'blocked'}`}>
+              <div className="visit-twin-heading">
+                <span>
+                  {isVisitReady ? (
+                    <PlayCircle size={22} aria-hidden="true" />
+                  ) : (
+                    <CircleAlert size={22} aria-hidden="true" />
+                  )}
+                </span>
+                <div>
+                  <p className="overline">{t('Digital rehearsal', 'डिजिटल अभ्यास')}</p>
+                  <h3 ref={replayHeadingRef} tabIndex={-1}>
+                    {isVisitReady
+                      ? t('Successful visit replay', 'सफल यात्रा का रीप्ले')
+                      : t('Failure forecast', 'विफलता का पूर्वानुमान')}
+                  </h3>
+                </div>
+                <strong>
+                  {isVisitReady
+                    ? t(
+                        `${visitSimulationSteps.length} counters clear`,
+                        `${visitSimulationSteps.length} काउंटर तैयार`,
+                      )
+                    : t('Second visit likely', 'दूसरी यात्रा संभव')}
+                </strong>
+              </div>
+
+              <div className="visit-twin-route">
+                {visitSimulationSteps.map((simulationStep, index) => (
+                  <div
+                    className={`visit-twin-step ${simulationStep.status}`}
+                    key={simulationStep.title}
+                    style={{ '--visit-step': index } as CSSProperties}
+                  >
+                    <span className="visit-twin-node">
+                      {simulationStep.status === 'passed' ? (
+                        <Check size={15} aria-hidden="true" />
+                      ) : simulationStep.status === 'blocked' ? (
+                        <CircleAlert size={15} aria-hidden="true" />
+                      ) : (
+                        index + 1
+                      )}
+                    </span>
+                    <div>
+                      <small>{t(`Counter ${index + 1}`, `काउंटर ${index + 1}`)}</small>
+                      <strong>{simulationStep.title}</strong>
+                      <p>{simulationStep.note}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="visit-twin-impact">
+                <Building2 size={18} aria-hidden="true" />
+                <div>
+                  <strong>
+                    {preventedFailure
+                      ? t('One failure prevented before leaving home', 'घर से निकलने से पहले एक विफलता रोकी गई')
+                      : isVisitReady
+                        ? t('No blocking handoff found in this journey', 'इस प्रक्रिया में कोई रुकावट नहीं मिली')
+                      : t('Without this check: return home, correct records, book again', 'इस जाँच के बिना: घर लौटें, रिकॉर्ड सुधारें, फिर बुक करें')}
+                  </strong>
+                  <span>
+                    {preventedFailure
+                      ? t('The same correction now flows through every linked service.', 'यही सुधार अब हर जुड़ी सेवा में लागू है।')
+                      : isVisitReady
+                        ? t('Every requested service can proceed in one coordinated visit.', 'हर अनुरोधित सेवा एक समन्वित यात्रा में आगे बढ़ सकती है।')
+                      : t('VisitTwin shows the consequence, not just a warning.', 'VisitTwin केवल चेतावनी नहीं, उसका परिणाम दिखाता है।')}
+                  </span>
+                </div>
+              </div>
+
+              {hasAddressUpdate && (
+                <div
+                  className={`visit-cost-ledger ${
+                    preventedFailure ? 'saved' : 'at-risk'
+                  }`}
+                  aria-label={t(
+                    preventedFailure
+                      ? 'Illustrative cost prevented'
+                      : 'Illustrative cost of the predicted failed visit',
+                    preventedFailure
+                      ? 'रोकी गई अनुमानित लागत'
+                      : 'अनुमानित विफल यात्रा की लागत',
+                  )}
+                >
+                  <div className="visit-cost-ledger-heading">
+                    <span>
+                      {preventedFailure
+                        ? t('Visit cost prevented', 'यात्रा लागत रोकी गई')
+                        : t('If the citizen travelled now', 'यदि नागरिक अभी यात्रा करे')}
+                    </span>
+                    <small>{t('Illustrative synthetic scenario', 'काल्पनिक उदाहरण')}</small>
+                  </div>
+                  <div className="visit-cost-ledger-items">
+                    {[
+                      {
+                        value: '1',
+                        label: t('workday', 'कार्यदिवस'),
+                      },
+                      {
+                        value: '28 km',
+                        label: t('return trip', 'वापसी यात्रा'),
+                      },
+                      {
+                        value: '11 days',
+                        label: t('to next slot', 'अगले स्लॉट तक'),
+                      },
+                    ].map((cost) => (
+                      <div key={cost.label}>
+                        <strong>{cost.value}</strong>
+                        <span>{cost.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {!nameMismatchResolved && hasAddressUpdate ? (
               <div className="resolution-card">
                 <Info size={20} aria-hidden="true" />
                 <div>
@@ -405,11 +726,35 @@ export function RoadReadyView({
                   {t('Resolve name mismatch', 'नाम की असमानता हल करें')}
                 </button>
               </div>
+            ) : !centreSupportsPlan ? (
+              <div className="resolution-card">
+                <Info size={20} aria-hidden="true" />
+                <div>
+                  <strong>
+                    {t(
+                      'Choose a centre that supports the full plan',
+                      'पूरी योजना वाला केंद्र चुनें',
+                    )}
+                  </strong>
+                  <p>
+                    {t(
+                      'RTO Dwarka and RTO Vasant Vihar support both renewal and address change in this demo.',
+                      'इस डेमो में RTO द्वारका और RTO वसंत विहार नवीनीकरण और पता परिवर्तन दोनों करते हैं।',
+                    )}
+                  </p>
+                </div>
+                <button className="button primary" onClick={onBack}>
+                  {t('Choose another RTO', 'दूसरा RTO चुनें')}
+                </button>
+              </div>
             ) : (
               <div className="roadready-actions">
-                <span className="ready-message">
+                <span className="ready-message" role="status" aria-live="polite">
                   <CheckCircle2 size={18} aria-hidden="true" />
-                  {t('All four readiness checks passed', 'सभी चार तैयारी जाँच पास')}
+                  {t(
+                    `VisitTwin replay complete · all ${visitSimulationSteps.length} counters clear`,
+                    `VisitTwin रीप्ले पूरा · सभी ${visitSimulationSteps.length} काउंटर तैयार`,
+                  )}
                 </span>
                 <button className="button primary" onClick={generatePass}>
                   <BadgeCheck size={18} aria-hidden="true" />
@@ -444,23 +789,58 @@ export function RoadReadyView({
                     role="img"
                     aria-label="RoadReady verification QR code"
                   />
-                  <small>RR-0829-41</small>
+                  <small>{PASS_ID}</small>
                 </div>
                 <div className="pass-summary">
                   <span className="pass-score">100%</span>
-                  <h2>{t('4 checks passed', '4 जाँच पास')}</h2>
-                  <p>{t('3 services bundled · 1 visit planned', '3 सेवाएँ जोड़ी गईं · 1 यात्रा नियोजित')}</p>
+                  <h2>
+                    {t(
+                      `${preflightChecks.length} checks passed`,
+                      `${preflightChecks.length} जाँच पास`,
+                    )}
+                  </h2>
+                  <p>
+                    {t(
+                      `${services.length} ${
+                        services.length === 1 ? 'service' : 'services'
+                      } bundled · 1 visit planned`,
+                      `${services.length} सेवाएँ जोड़ी गईं · 1 यात्रा नियोजित`,
+                    )}
+                  </p>
                   <dl>
                     <div>
                       <dt>{t('Centre', 'केंद्र')}</dt>
-                      <dd>{centre}</dd>
+                      <dd>{passCentre}</dd>
                     </div>
                     <div>
                       <dt>{t('Valid until', 'मान्य समय')}</dt>
-                      <dd>30 Aug 2026 · 8:30 PM</dd>
+                      <dd>{passAppointmentDate} · 8:30 PM</dd>
                     </div>
                   </dl>
                 </div>
+              </div>
+
+              <div className="visit-twin-proof">
+                <PlayCircle size={19} aria-hidden="true" />
+                <div>
+                  <strong>{t('Verified by VisitTwin', 'VisitTwin द्वारा सत्यापित')}</strong>
+                  <p>
+                    {preventedFailure
+                      ? t(
+                          `The full ${visitSimulationSteps.length}-counter journey was simulated after the correction: no blocked handoff, no duplicate form and no exposed document number.`,
+                          `सुधार के बाद सभी ${visitSimulationSteps.length} काउंटर की यात्रा सिम्युलेट हुई: कोई रुका हस्तांतरण, दोहराया फ़ॉर्म या उजागर दस्तावेज़ नंबर नहीं।`,
+                        )
+                      : t(
+                          `The full ${visitSimulationSteps.length}-counter journey was simulated with no blocked handoff, duplicate form or exposed document number.`,
+                          `सभी ${visitSimulationSteps.length} काउंटर की यात्रा सिम्युलेट हुई: कोई रुका हस्तांतरण, दोहराया फ़ॉर्म या उजागर दस्तावेज़ नंबर नहीं।`,
+                        )}
+                  </p>
+                </div>
+                <span>
+                  {preventedFailure
+                    ? t('1 day + 1 trip saved', '1 दिन + 1 यात्रा बची')
+                    : t('Route verified', 'प्रक्रिया सत्यापित')}
+                </span>
               </div>
 
               <div className="pass-services">
@@ -504,11 +884,18 @@ export function RoadReadyView({
                     <small>{t('Readiness only, not documents', 'केवल तैयारी, दस्तावेज़ नहीं')}</small>
                   </span>
                 </button>
-                <button onClick={onManageAppointment}>
+                <button
+                  onClick={() =>
+                    onManageAppointment({
+                      centre: passCentre,
+                      date: passAppointmentDate,
+                    })
+                  }
+                >
                   <MapPin size={19} aria-hidden="true" />
                   <span>
                     <strong>{t('Manage visit and map', 'यात्रा और नक्शा प्रबंधित करें')}</strong>
-                    <small>{centre}</small>
+                    <small>{passCentre}</small>
                   </span>
                 </button>
               </div>
@@ -518,7 +905,7 @@ export function RoadReadyView({
                   <ClipboardCheck size={17} aria-hidden="true" />
                   <span>
                     <strong>{t('Consent recorded', 'सहमति दर्ज')}</strong>
-                    <small>29 Aug · 8:31 PM</small>
+                    <small>08 Sep · 8:31 PM</small>
                   </span>
                 </div>
                 <div>

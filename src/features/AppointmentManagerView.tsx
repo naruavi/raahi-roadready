@@ -10,6 +10,8 @@ import {
   Send,
   ShieldCheck,
 } from 'lucide-react'
+import { demoAppointmentDates } from '../demoSchedule'
+import { getRtoCentre } from '../rtoData'
 
 type Translate = (english: string, hindi: string) => string
 
@@ -26,17 +28,6 @@ type AppointmentManagerViewProps = {
   onUpdate: (appointment: AppointmentDetails) => void
 }
 
-const dates = [
-  { value: '31 Aug 2026', label: 'Monday, 31 August', day: '31', month: 'Aug' },
-  { value: '01 Sep 2026', label: 'Tuesday, 01 September', day: '01', month: 'Sep' },
-  { value: '02 Sep 2026', label: 'Wednesday, 02 September', day: '02', month: 'Sep' },
-]
-
-const mapUrl =
-  'https://www.openstreetmap.org/export/embed.html?bbox=77.0472%2C28.5744%2C77.0680%2C28.5892&layer=mapnik&marker=28.5818%2C77.0576'
-const directionsUrl =
-  'https://www.openstreetmap.org/?mlat=28.5818&mlon=77.0576#map=16/28.5818/77.0576'
-
 export function AppointmentManagerView({
   t,
   appointment,
@@ -47,6 +38,7 @@ export function AppointmentManagerView({
   const [selectedDate, setSelectedDate] = useState(appointment.date)
   const [selectedTime, setSelectedTime] = useState(appointment.time)
   const [status, setStatus] = useState('')
+  const centreDetails = getRtoCentre(appointment.centre)
 
   const saveAppointment = () => {
     onUpdate({
@@ -62,7 +54,7 @@ export function AppointmentManagerView({
     const shareData = {
       title: appointment.centre,
       text: `${appointment.centre} · ${appointment.date} · ${appointment.time}`,
-      url: directionsUrl,
+      url: centreDetails.directionsUrl,
     }
 
     try {
@@ -127,7 +119,7 @@ export function AppointmentManagerView({
                   <div>
                     <MapPin size={18} aria-hidden="true" />
                     <span>{t('Address', 'पता')}</span>
-                    <strong>Sector 10, Dwarka, New Delhi 110075</strong>
+                    <strong>{centreDetails.address}</strong>
                   </div>
                 </div>
                 <div className="visit-checklist">
@@ -158,7 +150,7 @@ export function AppointmentManagerView({
                 <div className="selection-group">
                   <label>{t('Choose a new date', 'नई तारीख चुनें')}</label>
                   <div className="date-options">
-                    {dates.map((date) => (
+                    {demoAppointmentDates.map((date) => (
                       <button
                         key={date.value}
                         type="button"
@@ -224,7 +216,7 @@ export function AppointmentManagerView({
             <div className="map-frame">
               <iframe
                 title="RTO location map"
-                src={mapUrl}
+                src={centreDetails.mapUrl}
                 loading="lazy"
                 referrerPolicy="no-referrer"
               />
@@ -233,7 +225,7 @@ export function AppointmentManagerView({
               <MapPin size={18} aria-hidden="true" />
               <div>
                 <strong>{appointment.centre}</strong>
-                <span>Sector 10, Dwarka, New Delhi 110075</span>
+                <span>{centreDetails.address}</span>
               </div>
             </div>
             <div className="map-actions">
@@ -243,7 +235,7 @@ export function AppointmentManagerView({
               </button>
               <a
                 className="button primary"
-                href={directionsUrl}
+                href={centreDetails.directionsUrl}
                 target="_blank"
                 rel="noreferrer"
               >
